@@ -6,10 +6,13 @@ import numpy as np
 from scipy import interpolate
 from datetime import datetime
 from astropy.time import Time
+import matplotlib.pyplot as plt
+import healpy as hp
 
 hera_beam_file = '/home/beards/code/python/PRISim/prisim/data/beams/HERA_HFSS_X4Y2H_4900.hmap'
 
-freqs = np.arange(100.0, 200.0, 1.5625)
+df = 1.5625
+freqs = np.arange(100.0+df/2.0, 200.0, df)
 hours = np.arange(0.0, 24.0, .5)
 lsts = np.zeros_like(hours)
 nside = 32
@@ -31,7 +34,7 @@ for poli, pol in enumerate(pols):
     func = interpolate.interp1d(temp_f, temp_im, kind='cubic', axis=1)
     hera_beam[pol] = func(freqs)
 
-fig = figure("Tsky calc")
+fig = plt.figure("Tsky calc")
 for poli, pol in enumerate(pols):
     for fi, freq in enumerate(freqs):
         print 'Forming Tsky for frequency ' + str(freq) + ' MHz.'
@@ -40,7 +43,7 @@ for poli, pol in enumerate(pols):
                            xsize=400, return_projected_map=True, half_sky=True)
         beam[np.isinf(beam)] = np.nan
         for ti, t in enumerate(hours):
-            clf()
+            plt.clf()
             dt = datetime(2013, 1, 1, np.int(t), np.int(60.0 * (t - np.floor(t))),
                           np.int(60.0 * (60.0 * t - np.floor(t * 60.0))))
             lsts[ti] = Time(dt).sidereal_time('apparent', longitude).hour
