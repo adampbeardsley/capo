@@ -27,8 +27,6 @@ def match_data_to_model(lsts, data, params):
             (params[0] + params[1] * lsts_shifted))
 
 
-def data_to_plot(lsts, fi, )
-
 HERA_hex_list = [9, 10, 20, 22, 31, 43, 53, 64, 65, 72, 80, 81, 88, 89, 96, 97, 104, 105, 112]
 PAPER_hex_list = [0, 2, 14, 17, 21, 40, 44, 45, 54, 62, 68, 69, 84, 85, 86, 100, 101, 102, 113]
 PAPER_imaging_list = [1, 3, 4, 13, 15, 16, 23, 26, 37, 38, 41, 42, 46, 47, 49,
