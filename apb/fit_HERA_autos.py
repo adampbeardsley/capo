@@ -86,7 +86,7 @@ for anti, ant in enumerate(HERA_hex_list):
            extent=(freqs.min(), freqs.max(), lsts.min(), lsts.max()), interpolation='none')
     xlabel('Frequency (MHz)')
     ylabel('LST (Hour)')
-    title('Rough gain')
+    title('Rough gain, Antenna ' + str(ant))
     colorbar()
     outfile = outdir + 'gain_waterfall' + str(ant) + '.png'
     savefig(outfile)
@@ -98,7 +98,7 @@ for anti, ant in enumerate(HERA_hex_list):
            extent=(freqs.min(), freqs.max(), lsts.min(), lsts.max()), interpolation='none')
     xlabel('Frequency (MHz)')
     ylabel('LST (Hour)')
-    title('Rxr temperature (log10(K))')
+    title('Rxr temperature (log10(K)), Antenna ' + str(ant))
     clim([0, 2 * np.log10(np.median(HERA_rxr_temp[anti, :, :]))])
     colorbar()
     outfile = outdir + 'rxr_temp_waterfall' + str(ant) + '.png'
