@@ -90,7 +90,7 @@ for poli, pol in enumerate(pols):
 
 inds = np.argsort(lsts)
 lsts = lsts[inds]
-PAPER_Tsky = HERA_Tsky[:, :, inds]
+PAPER_Tsky = PAPER_Tsky[:, :, inds]
 
 Tsky_file = '/data2/beards/tmp/PAPER_Tsky.npz'
 np.savez(Tsky_file, PAPER_Tsky=PAPER_Tsky, freqs=freqs, lsts=lsts)
