@@ -12,7 +12,7 @@ import healpy as hp
 hera_beam_file = '/home/beards/code/python/PRISim/prisim/data/beams/HERA_HFSS_X4Y2H_4900.hmap'
 
 df = 1.5625
-freqs = np.arange(100.0+df/2.0, 200.0, df)
+freqs = np.arange(100.0 + df / 2.0, 200.0, df)
 hours = np.arange(0.0, 24.0, .5)
 lsts = np.zeros_like(hours)
 nside = 32
@@ -37,7 +37,7 @@ for poli, pol in enumerate(pols):
 fig = plt.figure("Tsky calc")
 for poli, pol in enumerate(pols):
     for fi, freq in enumerate(freqs):
-        print 'Forming Tsky for frequency ' + str(freq) + ' MHz.'
+        print 'Forming HERA Tsky for frequency ' + str(freq) + ' MHz.'
         # Rotate and project hera beam
         beam = hp.orthview(hera_beam[pol][:, fi], rot=[0, 90], fig=fig.number,
                            xsize=400, return_projected_map=True, half_sky=True)
@@ -54,3 +54,43 @@ for poli, pol in enumerate(pols):
                               half_sky=True)
             sky[np.isinf(sky)] = np.nan
             HERA_Tsky[poli, fi, ti] = np.nanmean(beam * sky) / np.nanmean(beam)
+
+inds = np.argsort(lsts)
+lsts = lsts[inds]
+HERA_Tsky = HERA_Tsky[:, :, inds]
+
+Tsky_file = '/data2/beards/tmp/HERA_Tsky.npz'
+np.savez(Tsky_file, HERA_Tsky=HERA_Tsky, freqs=freqs, lsts=lsts)
+
+# Repeat for "PAPER beam" - basically all-sky for now
+PAPER_Tsky = np.zeros((len(pols), freqs.shape[0], lsts.shape[0]))
+paper_beam = {}
+for poli, pol in enumerate(pols):
+    paper_beam[pol] = np.ones_like(hera_beam[pol])
+
+# Rotate and project "paper beam" - do outside loop because I'm treating it as all-sky
+beam = hp.orthview(paper_beam[pol][:, fi], rot=[0, 90], fig=fig.number,
+                   xsize=400, return_projected_map=True, half_sky=True)
+beam[np.isinf(beam)] = np.nan
+for poli, pol in enumerate(pols):
+    for fi, freq in enumerate(freqs):
+        print 'Forming PAPER Tsky for frequency ' + str(freq) + ' MHz.'
+        for ti, t in enumerate(hours):
+            plt.clf()
+            dt = datetime(2013, 1, 1, np.int(t), np.int(60.0 * (t - np.floor(t))),
+                          np.int(60.0 * (60.0 * t - np.floor(t * 60.0))))
+            lsts[ti] = Time(dt).sidereal_time('apparent', longitude).hour
+            ov.date = dt
+            ov.generate(freq)
+            d = ov.view(fig=fig.number)
+            sky = hp.orthview(d, fig=fig.number, xsize=400, return_projected_map=True,
+                              half_sky=True)
+            sky[np.isinf(sky)] = np.nan
+            PAPER_Tsky[poli, fi, ti] = np.nanmean(beam * sky) / np.nanmean(beam)
+
+inds = np.argsort(lsts)
+lsts = lsts[inds]
+PAPER_Tsky = HERA_Tsky[:, :, inds]
+
+Tsky_file = '/data2/beards/tmp/PAPER_Tsky.npz'
+np.savez(Tsky_file, PAPER_Tsky=PAPER_Tsky, freqs=freqs, lsts=lsts)
