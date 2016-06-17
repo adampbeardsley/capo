@@ -34,3 +34,6 @@ xxd_ave = xxd_ave[:, inds, :]
 inds = np.argsort(ylsts)
 ylsts = ylsts[inds]
 yyd_ave = yyd_ave[:, inds, :]
+
+lsts = [xlsts, ylsts]
+data_ave = [xxd_ave, yyd_ave]
