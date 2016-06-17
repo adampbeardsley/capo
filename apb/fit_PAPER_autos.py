@@ -74,6 +74,7 @@ for anti, ant in enumerate(PAPER_list):
         temp, = plt.plot(lsts, match_data_to_model(lsts, xxd_ave[ant, :, fi],
                                                    PAPER_fits[anti, fi, :]), '.', ms=5)
         plt.plot(lsts, interp_func(lsts)[0, fi, :], '.', ms=2)
+    ylim([0, 1.3 * np.max(interp_func(lsts)[0, finds[0], :])])
     xlabel('LST (Hours)')
     ylabel('Tsky')
     title('Antenna ' + str(ant))
