@@ -14,14 +14,23 @@ xxfilenames = glob(xxglob)
 yyfilenames = glob(yyglob)
 
 xxt, xxd, xxf = capo.arp.get_dict_of_uv_data(xxfilenames, polstr='xx', antstr='auto')
-lsts = xxt['lsts'] * 12.0 / np.pi
-nt, nchan = xxd[0, 0]['xx'].shape
+yyt, yyd, yyf = capo.arp.get_dict_of_uv_data(yyfilenames, polstr='yy', antstr='auto')
+xlsts = xxt['lsts'] * 12.0 / np.pi
+ylsts = yyt['lsts'] * 12.0 / np.pi
+xnt, nchan = xxd[0, 0]['xx'].shape
+ynt = yyd[0, 0]['yy'].shape[0]
 # Do some coarse averaging
-xxd_ave = np.zeros((nant, nt, nchan / chanave), dtype=np.float64)
+xxd_ave = np.zeros((nant, xnt, nchan / chanave), dtype=np.float64)
+yyd_ave = np.zeros((nant, ynt, nchan / chanave), dtype=np.float64)
 for ant in xrange(128):
     for chan in xrange(nchan / chanave):
         xxd_ave[ant, :, chan] = np.mean(xxd[ant, ant]['xx'][:, (chan * chanave):((chan + 1) * chanave)], axis=1)
+        yyd_ave[ant, :, chan] = np.mean(yyd[ant, ant]['yy'][:, (chan * chanave):((chan + 1) * chanave)], axis=1)
 
-inds = np.argsort(lsts)
-lsts = lsts[inds]
+inds = np.argsort(xlsts)
+xlsts = xlsts[inds]
 xxd_ave = xxd_ave[:, inds, :]
+
+inds = np.argsort(ylsts)
+ylsts = ylsts[inds]
+yyd_ave = yyd_ave[:, inds, :]
