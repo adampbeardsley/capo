@@ -13,9 +13,9 @@ def curve_to_fit(lsts, gain, gain_slope, rxr_amp, rxr_slope):
             rxr_amp + rxr_slope * lsts_shifted)
 
 
-def match_model_to_data(lsts, fi, params):
+def match_model_to_data(lsts, pol, fi, params):
     global interp_func
-    interp_values = interp_func(lsts)[0, fi, :]
+    interp_values = interp_func(lsts)[pol, fi, :]
     lsts_shifted = lsts - lsts.min()
     return (params[0] * interp_values + params[1] * lsts_shifted * interp_values +
             params[2] + params[3] * lsts_shifted)
@@ -55,11 +55,11 @@ h_interp_func = interpolate.interp1d(model_lsts, HERA_Tsky, kind='cubic', axis=2
 p_interp_func = interpolate.interp1d(model_lsts, PAPER_Tsky, kind='cubic', axis=2)
 for pol in xrange(npol):
     for fi, freq in enumerate(freqs):
-        interp_values = h_interp_func(lsts[pol])[0, fi, :]
+        interp_values = h_interp_func(lsts[pol])[pol, fi, :]
         for ant in HERA_list:
             auto_fits[pol, ant, fi, :] = curve_fit(curve_to_fit, lsts[pol],
                                                    data_ave[pol][ant, :, fi])[0]
-        interp_values = p_interp_func(lsts[pol])[0, fi, :]
+        interp_values = p_interp_func(lsts[pol])[pol, fi, :]
         for ant in PAPER_list:
             auto_fits[pol, ant, fi, :] = curve_fit(curve_to_fit, lsts[pol],
                                                    data_ave[pol][ant, :, fi])[0]
@@ -102,8 +102,8 @@ for pol in xrange(npol):
         for fi in finds:
             plt.plot(lsts[pol], match_data_to_model(lsts[pol], data_ave[pol][ant, :, fi],
                                                     auto_fits[pol, ant, fi, :]), '.', ms=5)
-            plt.plot(lsts[pol], interp_func(lsts[pol])[0, fi, :], '.', ms=2)
-        ylim([0, 1.3 * np.max(interp_func(lsts[pol])[0, finds[0], :])])
+            plt.plot(lsts[pol], interp_func(lsts[pol])[pol, fi, :], '.', ms=2)
+        ylim([0, 1.3 * np.max(interp_func(lsts[pol])[pol, finds[0], :])])
         xlabel('LST (Hours)')
         ylabel('Tsky')
         title(tittext)

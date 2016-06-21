@@ -16,7 +16,7 @@ freqs = np.arange(100.0 + df / 2.0, 200.0, df)
 hours = np.arange(0.0, 24.0, .5)
 lsts = np.zeros_like(hours)
 nside = 32
-pols = ['X']  # Only have X beam right now
+pols = ['X', 'Y']  # Only have X beam, but try rotating 90 degrees for Y
 HERA_Tsky = np.zeros((len(pols), freqs.shape[0], lsts.shape[0]))
 PAPER_Tsky = np.zeros((len(pols), freqs.shape[0], lsts.shape[0]))
 paper_width0 = np.pi / 2.0  # FWHM in radians
@@ -25,8 +25,9 @@ paper_width0 = np.pi / 2.0  # FWHM in radians
 hera_beam = {}
 paper_beam = {}
 for poli, pol in enumerate(pols):
-    temp_im = fits.getdata(hera_beam_file, extname='BEAM_{0}'.format(pol))
-    temp_f = fits.getdata(hera_beam_file, extname='FREQS_{0}'.format(pol))
+    # Only have X right now, will rotate later
+    temp_im = fits.getdata(hera_beam_file, extname='BEAM_{0}'.format('X'))
+    temp_f = fits.getdata(hera_beam_file, extname='FREQS_{0}'.format('X'))
     # Interpolate to the desired frequencies
     func = interpolate.interp1d(temp_f, temp_im, kind='cubic', axis=1)
     hera_beam[pol] = func(freqs)
@@ -49,10 +50,11 @@ for poli, pol in enumerate(pols):
     for fi, freq in enumerate(freqs):
         print 'Forming HERA Tsky for frequency ' + str(freq) + ' MHz.'
         # Rotate and project hera beam (Need to figure out how to do this w/o making figure)
-        hbeam = hp.orthview(hera_beam[pol][:, fi], rot=[0, 90], fig=fig.number,
+        pol_ang = 90 * (1 - poli)  # Extra rotation for X
+        hbeam = hp.orthview(hera_beam[pol][:, fi], rot=[pol_ang, 90], fig=fig.number,
                             xsize=400, return_projected_map=True, half_sky=True)
         hbeam[np.isinf(hbeam)] = np.nan
-        pbeam = hp.orthview(paper_beam[pol][:, fi], rot=[0, 90], fig=fig.number,
+        pbeam = hp.orthview(paper_beam[pol][:, fi], rot=[pol_ang, 90], fig=fig.number,
                             xsize=400, return_projected_map=True, half_sky=True)
         pbeam[np.isinf(pbeam)] = np.nan
         for ti, t in enumerate(hours):
