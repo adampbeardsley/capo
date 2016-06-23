@@ -6,25 +6,19 @@ import matplotlib.pyplot as plt
 
 
 # Define curve to fit data to
-def curve_to_fit(lsts, gain, gain_slope, rxr_amp, rxr_slope):
+def curve_to_fit(lsts, gain, rxr_amp):
     global interp_values
-    lsts_shifted = lsts - lsts.min()
-    return (gain * interp_values + gain_slope * lsts_shifted * interp_values +
-            rxr_amp + rxr_slope * lsts_shifted)
+    return (gain * interp_values + rxr_amp)
 
 
 def match_model_to_data(lsts, pol, fi, params):
     global interp_func
     interp_values = interp_func(lsts)[pol, fi, :]
-    lsts_shifted = lsts - lsts.min()
-    return (params[0] * interp_values + params[1] * lsts_shifted * interp_values +
-            params[2] + params[3] * lsts_shifted)
+    return (params[0] * interp_values + params[1])
 
 
-def match_data_to_model(lsts, data, params):
-    lsts_shifted = lsts - lsts.min()
-    return ((data - params[2] - params[3] * lsts_shifted) /
-            (params[0] + params[1] * lsts_shifted))
+def match_data_to_model(data, params):
+    return (data - params[1]) / params[0]
 
 HERA_list = [9, 10, 20, 22, 31, 43, 53, 64, 65, 72, 80, 81, 88, 89, 96, 97, 104, 105, 112]
 PAPER_hex_list = [0, 2, 14, 17, 21, 40, 44, 45, 54, 62, 68, 69, 84, 85, 86, 100, 101, 102, 113]
@@ -50,7 +44,7 @@ Tsky_file = '/data2/beards/tmp/PAPER_Tsky.npz'
 data = np.load(Tsky_file)
 PAPER_Tsky = data['PAPER_Tsky']
 
-auto_fits = np.zeros((npol, nant, len(freqs), 4))  # sky_amp, sky_slope, rxr_amp, rxr_slope
+auto_fits = np.zeros((npol, nant, len(freqs), 2))  # sky_amp, rxr_amp
 h_interp_func = interpolate.interp1d(model_lsts, HERA_Tsky, kind='cubic', axis=2)
 p_interp_func = interpolate.interp1d(model_lsts, PAPER_Tsky, kind='cubic', axis=2)
 for pol in xrange(npol):
@@ -65,17 +59,9 @@ for pol in xrange(npol):
                                                    data_ave[pol][ant, :, fi])[0]
 
 # Get gains and receiver temperatures
-gains = np.zeros((npol, nant, len(freqs), len(lsts[0])))
-rxr_temp = np.zeros((npol, nant, len(freqs), len(lsts[0])))
-lsts_shifted = [lsts[0] - lsts[0].min(), lsts[1] - lsts[1].min()]
-for pol in xrange(npol):
-    for ant in xrange(nant):
-        gains[pol, ant, :, :] = (auto_fits[pol, ant, :, 0].reshape(-1, 1) +
-                                 auto_fits[pol, ant, :, 1].reshape(-1, 1) *
-                                 lsts_shifted[pol].reshape(1, -1))
-        rxr_temp[pol, ant, :, :] = (auto_fits[pol, ant, :, 2].reshape(-1, 1) +
-                                    auto_fits[pol, ant, :, 3].reshape(-1, 1) *
-                                    lsts_shifted[pol].reshape(1, -1)) / gains[pol, ant, :, :]
+dummy = np.ones_like(lsts[0])
+gains = auto_fits[:, :, :, 0].reshape(npol, nant, len(freqs), 1) * dummy.reshape(1, 1, 1, -1)
+rxr_temp = auto_fits[:, :, :, 1].reshape(npol, nant, len(freqs), 1) * dummy.reshape(1, 1, 1, -1)
 
 # Do some plotting
 # first plot some of the actual fits
@@ -100,7 +86,7 @@ for pol in xrange(npol):
             interp_func = p_interp_func
 
         for fi in finds:
-            plt.plot(lsts[pol], match_data_to_model(lsts[pol], data_ave[pol][ant, :, fi],
+            plt.plot(lsts[pol], match_data_to_model(data_ave[pol][ant, :, fi],
                                                     auto_fits[pol, ant, fi, :]), '.', ms=5)
             plt.plot(lsts[pol], interp_func(lsts[pol])[pol, fi, :], '.', ms=2)
         ylim([0, 1.3 * np.max(interp_func(lsts[pol])[pol, finds[0], :])])
@@ -135,7 +121,8 @@ for pol in xrange(npol):
         savefig(outfile)
 
 # Final plot is gain vs Antenna
-mean_gains = np.mean(gains, axis=(2, 3))
+fi_use = np.arange(finds[0], finds[2])
+mean_gains = np.mean(gains[:, :, fi_use, :], axis=(2, 3))
 fig.clf()
 syms = ['x', 'v']
 handles = []
