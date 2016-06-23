@@ -145,6 +145,8 @@ temp, = plt.plot(PAPER_imaging_list, mean_gains[0, PAPER_imaging_list], 'x', lab
 handles += [temp]
 plt.plot(PAPER_imaging_list, mean_gains[1, PAPER_imaging_list], 'v', color=temp.get_color())
 ylim([-.01, .05])
+xlabel('Antenna number')
+ylabel('Average Gain')
 plt.legend(handles=handles)
 outfile = outdir + 'avg_gains.png'
 savefig(outfile)
