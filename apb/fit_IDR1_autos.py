@@ -81,6 +81,8 @@ for pol in xrange(npol):
 # first plot some of the actual fits
 outdir = '/data2/beards/IDR1_auto_data/'
 finds = [10, 32, 54]  # beginning, middle, end, but not at the very edges
+dark_colors = ['blue', 'green', 'red']
+light_colors = ['dodgerblue', 'lightgreen', 'salmon']
 fig = plt.figure('auto fits')
 for pol in xrange(npol):
     for ant in xrange(nant):
@@ -99,14 +101,18 @@ for pol in xrange(npol):
             tittext = 'Antenna ' + str(ant) + pols[pol] + ' (PAPER imaging)'
             interp_func = p_interp_func
 
-        for fi in finds:
+        for i, fi in enumerate(finds):
+            label = str(freqs[fi]) + ' MHz'
             plt.plot(lsts[pol], match_data_to_model(lsts[pol], data_ave[pol][ant, :, fi],
-                                                    auto_fits[pol, ant, fi, :]), '.', ms=5)
-            plt.plot(lsts[pol], interp_func(lsts[pol])[pol, fi, :], '.', ms=2)
+                                                    auto_fits[pol, ant, fi, :]), '.',
+                     ms=5, color=dark_colors[i], label=label)
+            plt.plot(lsts[pol], interp_func(lsts[pol])[pol, fi, :],
+                     color=light_colors[i])
         ylim([0, 1.3 * np.max(interp_func(lsts[pol])[pol, finds[0], :])])
         xlabel('LST (Hours)')
         ylabel('Tsky')
         title(tittext)
+        legend()
         outfile = outdir + 'Tsky_v_LST_fit' + str(ant) + pols[pol] + '.png'
         savefig(outfile)
 
