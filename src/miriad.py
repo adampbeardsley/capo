@@ -1,6 +1,26 @@
 import aipy as a, numpy as n
 
 def read_files(filenames, antstr, polstr, decimate=1, decphs=0, verbose=False, recast_as_array=True):
+    '''Read in miriad uv files.
+       Parameters
+       ---------
+       filenames : list of files
+       antstr    : string
+            list of antennas and or baselines. e.g. 9_10,5_3,...etc.
+       polstr    : string
+            polarization to extract.
+
+       Returns 
+       -------
+       info      : dict. 
+            the lsts and jd's of the data
+       dat       : dict
+            the data in dictionary format. dat[bl(in tuple format)][pol(in string)]  
+       flg       : dict
+            corresponding flags to data. Same format. 
+    '''
+        
+        
     info = {'lsts':[], 'times':[]}
     ts = {}
     dat, flg = {}, {}
@@ -22,6 +42,7 @@ def read_files(filenames, antstr, polstr, decimate=1, decphs=0, verbose=False, r
                 dat[bl][pol],flg[bl][pol] = [],[]
             dat[bl][pol].append(d)
             flg[bl][pol].append(f)
+    info['freqs'] = a.cal.get_freqs(uv['sdf'], uv['sfreq'], uv['nchan'])
     if recast_as_array:
         # This option helps reduce memory footprint, but it shouldn't
         # be necessary: the replace below should free RAM as quickly
