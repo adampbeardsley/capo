@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 """
 
-Creates waterfall plot of T_RMS from Miriad UV files. 
+Creates waterfall plot of T_RMS from Miriad UV files.
 
     Here is some info the help with the legend:  \n
     avg: Data is averaged AFTER  multiplying x.conj * x \n
@@ -54,7 +54,7 @@ def get_data(filenames, antstr, polstr, rmbls, verbose=False):
             bl = a.miriad.ij2bl(i,j)
             if bl in rmbls: continue
             lst = uv['lst']
-            if len(lsts) == 0 or lst != lsts[-1]: 
+            if len(lsts) == 0 or lst != lsts[-1]:
                 lsts.append(lst)
                 #var.append(uv['var'])
             if not dat.has_key(bl):
@@ -166,7 +166,7 @@ if set(['even','odd']) == set(days):
         d = n.copy(data['even'][bl][:,band_chans]-data['odd'][bl][:,band_chans])
         c_e = n.copy(n.array(cnt1['even'][bl])[:,band_chans]) 
         v_e = n.copy(n.array(var1['even'][bl])[:,band_chans])
-        c_o = n.copy(n.array(cnt1['odd'][bl])[:,band_chans]) 
+        c_o = n.copy(n.array(cnt1['odd'][bl])[:,band_chans])
         v_o = n.copy(n.array(var1['odd'][bl])[:,band_chans])
         if conj[bl]: d=n.conj(d)
         x[bl] = n.transpose(d,[1,0])[band_chans,::dlst]
@@ -229,6 +229,7 @@ p.imshow(n.log(T_vs_bl),aspect='auto',interpolation='nearest')
 T_vs_bl_mean = n.mean(T_vs_bl[:,chans],axis=1)
 print "hottest baseline = ",bls_master[n.argwhere(T_vs_bl_mean==T_vs_bl_mean.max()).squeeze()]
 p.show()
+# embed()
 for i,bl in enumerate(bls_master):
     print 'Ploting Trms for %d_%d'%a.miriad.bl2ij(bl)
     p.subplot(121)

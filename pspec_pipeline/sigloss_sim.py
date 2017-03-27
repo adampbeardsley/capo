@@ -6,11 +6,12 @@ import pylab as p
 import capo
 import capo.frf_conv as fringe
 import glob
-import otparse
 import sys
+import optparse
 import random
 import capo.zsa as zsa
 from IPython import embed
+import capo.oqe as oqe
 
 o = optparse.OptionParser()
 a.scripting.add_standard_options(o, ant=True, pol=True, chan=True, cal=True)
@@ -33,6 +34,7 @@ o.add_option('--rmbls', dest='rmbls', type='string',
 opts, args = o.parse_args(sys.argv[1:])
 
 # Basic Parameters
+
 random.seed(0)
 # n.random.seed(1235813)
 POL = opts.pol  # 'I'
@@ -86,6 +88,7 @@ def frf(shape, loc=0, scale=1):
 
 def get_data(filenames, antstr, polstr, rmbls, verbose=False):
     """Return data dictionary from files."""
+
     # XXX could have this only pull channels of interest to save memory
     lsts, dat, flg = [], {}, {}
     if type(filenames) == 'str':
@@ -141,6 +144,7 @@ def noise(size, loc=0, scale=1):  # loc is mean, scale is stdev (sqrt(var))
             1j*n.random.normal(scale=sig,  size=size))
     # return ((n.random.normal(size=size,scale=scale) *
     #          n.exp(1j*n.random.uniform(0,2*n.pi,size=size))) + loc)
+
 
 
 def get_Q(mode, n_k):
@@ -257,6 +261,7 @@ for k in days:
 # inside that are baseline keys
 # inside that has shape (#lsts, #freqs)
 
+
 # Get some statistics
 if LST_STATS:
     # collect some metadata from the lst binning process
@@ -279,8 +284,27 @@ else:
     cnt, var = n.ones_like(lsts.values()[0]), n.ones_like(lsts.values()[0])
 
 
-# Align data in LST (even/odd data might have a different number of LSTs)
-lstmax = max([lsts[k][0] for k in days])  # the larger of the initial lsts
+#Align data in LST (even/odd data might have a different number of LSTs)
+lstr, order = {}, {}
+lstres = 0.001
+for k in lsts: #orders LSTs to find overlap
+    order[k] = n.argsort(lsts[k])
+    lstr[k] = n.around(lsts[k][order[k]] / lstres) * lstres
+lsts_final = None
+for i,k1 in enumerate(lstr.keys()):
+    for k2 in lstr.keys()[i:]:
+        if lsts_final is None: lsts_final = n.intersect1d(lstr[k1],lstr[k2]) #XXX LSTs much match exactly
+        else: lsts_final = n.intersect1d(lsts_final,lstr[k2])
+inds = {}
+for k in lstr: #selects correct LSTs from data
+    inds[k] = order[k].take(lstr[k].searchsorted(lsts_final))
+lsts = lsts[lsts.keys()[0]][inds[lsts.keys()[0]]]
+for k in days:
+    for bl in data[k]:
+        data[k][bl],flgs[k][bl] = data[k][bl][inds[k]],flgs[k][bl][inds[k]]
+
+"""# XXX found a bug in this original code (lsts['even'] and lsts['odd'] are different!)
+lstmax = max([lsts[k][0] for k in days]) #the larger of the initial lsts
 for k in days:
     # print k
     for i in xrange(len(lsts[k])):
@@ -294,9 +318,9 @@ j = min([len(lsts[k]) for k in days])
 for k in days:
     lsts[k] = lsts[k][:j]
     for bl in data[k]:
-        data[k][bl], flgs[k][bl] = (n.array(data[k][bl][:j]),
-                                    n.array(flgs[k][bl][:j]))
-lsts = lsts.values()[0]  # same set of LST values for both even/odd data
+        data[k][bl],flgs[k][bl] = n.array(data[k][bl][:j]),n.array(flgs[k][bl][:j])
+lsts = lsts.values()[0] #same set of LST values for both even/odd data
+"""
 daykey = data.keys()[0]
 blkey = data[daykey].keys()[0]
 ij = a.miriad.bl2ij(blkey)
@@ -313,6 +337,7 @@ while c != -1:
     else:
         break
 # ij = (64, 49)
+
 
 # ep FRF Stuff
 bins = fringe.gen_frbins(inttime)
@@ -331,28 +356,20 @@ _, blconj, _ = zsa.grid2ij(aa.ant_layout)
 fir = {(ij[0], ij[1], POL): firs}
 
 # Extract frequency range of data
+
 xi = {}
 f = {}
-NOISE = frf((len(chans), len(lsts)), loc=0, scale=1)
-# same noise on each bl
-# embed()
+#NOISE = frf((len(chans),len(lsts)),loc=0,scale=1) #same noise on each bl
 for k in days:
     xi[k] = {}
     f[k] = {}
     for bl in data[k]:
-        d = data[k][bl][:, chans] * jy2T
-        flg = flgs[k][bl][:, chans]
-        if conj[bl]:
-            d = n.conj(d)  # conjugate if necessary
-        shape = d.shape  # (times,freqs)
+        d = data[k][bl][:,chans] * jy2T
+        flg = flgs[k][bl][:,chans]
+        if conj[a.miriad.bl2ij(bl)]: d = n.conj(d) #conjugate if necessary
+        shape = d.shape #(times,freqs)
         if opts.noise_only:
-            xi[k][bl] = frf((len(chans), len(lsts)), loc=0, scale=1)
-            # diff noise for each bl
-            # xi[k][bl] = NOISE# frf((len(chans),len(lsts)),loc=0,scale=1)
-            # diff noise for each bl
-            # xi[k][bl] = n.zeros((len(chans),len(lsts)))
-            # frf((len(chans),len(lsts)),loc=0,scale=1)
-            # diff noise for each bl
+            xi[k][bl] =  frf((len(chans),len(lsts)),loc=0,scale=1) #diff noise for each bl
         else:
             xi[k][bl] = n.transpose(d, [1, 0])  # swap time and freq axes
         f[k][bl] = n.transpose(flg, [1, 0])
@@ -362,10 +379,12 @@ nbls = len(bls_master)
 print 'Baselines:', nbls
 print 'N times:', n.shape(xi[k][bl])[-1]
 
-# Bootstrapping
+
+#Bootstrapping
 for boot in xrange(opts.nboot):
 
     print '%d / %d' % (boot+1, opts.nboot)
+
 
     # Calculate pC just based on the data/simulation noise (no eor injection) #
     print 'Getting pCv'
@@ -390,10 +409,6 @@ for boot in xrange(opts.nboot):
             U, S, V = n.linalg.svd(C[k][bl].conj())
             # singular value decomposition
             _C[k][bl] = n.einsum('ij,j,jk', V.T, 1./S, U.T)
-            # norm1= (_C[k][bl]).sum(axis=-1)
-            # norm1.shape += (1,)
-            # _C[k][bl] /= norm1
-            # _C[k][bl] = n.identity(C[k][bl].shape[0])
             _I[k][bl] = n.identity(_C[k][bl].shape[0])
             _Cx[k][bl] = n.dot(_C[k][bl], x[k][bl])  # XXX
             _Ix[k][bl] = x[k][bl]  # XXX
@@ -546,16 +561,17 @@ for boot in xrange(opts.nboot):
         p.show()
 
     print "   Getting M"
-    order = n.array([10, 11, 9, 12, 8, 20, 0, 13, 7,
-                     14, 6, 15, 5, 16, 4, 17, 3, 18, 2, 19, 1])
-    iorder = n.argsort(order)
-    FC_o = n.take(n.take(FC, order, axis=0), order, axis=1)
-    L_o = n.linalg.cholesky(FC_o)
-    U, S, V = n.linalg.svd(L_o.conj())
-    MC_o = n.dot(n.transpose(V), n.dot(n.diag(1./S), n.transpose(U)))
-    MC = n.take(n.take(MC_o, iorder, axis=0), iorder, axis=1)
-    # MC  = n.identity(nchan, dtype=n.complex128)
+    # order = n.array([10, 11, 9, 12, 8, 20, 0, 13, 7,
+    #                  14, 6, 15, 5, 16, 4, 17, 3, 18, 2, 19, 1])
+    # iorder = n.argsort(order)
+    # FC_o = n.take(n.take(FC, order, axis=0), order, axis=1)
+    # L_o = n.linalg.cholesky(FC_o)
+    # U, S, V = n.linalg.svd(L_o.conj())
+    # MC_o = n.dot(n.transpose(V), n.dot(n.diag(1./S), n.transpose(U)))
+    # MC = n.take(n.take(MC_o, iorder, axis=0), iorder, axis=1)
+    MC = n.identity(nchan, dtype=n.complex128)
     MI = n.identity(nchan, dtype=n.complex128)
+
 
     print "   Getting W"
     WI = n.dot(MI, FI)
@@ -573,13 +589,14 @@ for boot in xrange(opts.nboot):
     # if opts.noise_only:
     #    scalar = 1
     pC = n.dot(MC, qC) * scalar
-    pI = n.dot(MI, qI) * scalar
+    pI = n.dot(MI, qI) * scalar 
 
     # XXX Overwriting to new variables
     pCv = pC.copy()
     pIv = pI.copy()
 
     # Loop to calculate pC of (data/noise+eor) and pI of eor #
+
     print 'Getting pCr and pIe'
 
     if INJECT_SIG > 0.:  # Create a fake EoR signal to inject
@@ -589,6 +606,7 @@ for boot in xrange(opts.nboot):
         # eor = frf((shape[1],shape[0]), loc=0, scale=1) * (boot+1)
         # create FRF-ered noise
         # eor  = noise(size=(shape[1],shape[0])) * INJECT_SIG
+
         x = {}
         for k in days:
             x[k] = {}
@@ -613,6 +631,7 @@ for boot in xrange(opts.nboot):
         for bl in bls_master:
             C[k][bl] = cov(x[k][bl])
             C[k][bl] += cov_reg_level * n.identity(C[k][bl].shape[0])
+
             I[k][bl] = n.identity(C[k][bl].shape[0])
             U, S, V = n.linalg.svd(C[k][bl].conj())
             # singular value decomposition
@@ -646,6 +665,7 @@ for boot in xrange(opts.nboot):
                 p.show()
 
     # Make boots
+
     bls = bls_master[:]
     # if True: #XXX GPS already defined the first time
     # shuffle and group baselines for bootstrapping
@@ -775,16 +795,17 @@ for boot in xrange(opts.nboot):
 
     print "   Getting M"
     # Cholesky decomposition
-    order = n.array([10, 11, 9, 12, 8, 20, 0, 13, 7, 14, 6,
-                     15, 5, 16, 4, 17, 3, 18, 2, 19, 1])
-    iorder = n.argsort(order)
-    FC_o = n.take(n.take(FC, order, axis=0), order, axis=1)
-    L_o = n.linalg.cholesky(FC_o)
-    U, S, V = n.linalg.svd(L_o.conj())
-    MC_o = n.dot(n.transpose(V), n.dot(n.diag(1./S), n.transpose(U)))
-    MC = n.take(n.take(MC_o, iorder, axis=0), iorder, axis=1)
-    # MC  = n.identity(nchan, dtype=n.complex128)
+    # order = n.array([10, 11, 9, 12, 8, 20, 0, 13, 7, 14, 6,
+    #                  15, 5, 16, 4, 17, 3, 18, 2, 19, 1])
+    # iorder = n.argsort(order)
+    # FC_o = n.take(n.take(FC, order, axis=0), order, axis=1)
+    # L_o = n.linalg.cholesky(FC_o)
+    # U, S, V = n.linalg.svd(L_o.conj())
+    # MC_o = n.dot(n.transpose(V), n.dot(n.diag(1./S), n.transpose(U)))
+    # MC = n.take(n.take(MC_o, iorder, axis=0), iorder, axis=1)
+    MC = n.identity(nchan, dtype=n.complex128)
     MI = n.identity(nchan, dtype=n.complex128)
+
 
     print "   Getting W"
     # print 'Normalizing M/W'
@@ -805,7 +826,7 @@ for boot in xrange(opts.nboot):
     # if opts.noise_only:
     #    scalar = 1
     pC = n.dot(MC, qC) * scalar
-    pI = n.dot(MI, qI) * scalar
+    pI = n.dot(MI, qI) * scalar 
 
     if PLOT:
         p.subplot(411)
@@ -832,6 +853,7 @@ for boot in xrange(opts.nboot):
     print 'pI=', n.average(pI.real), 'pC=', n.average(pC.real),
     print 'pI/pC=', n.average(pI.real)/n.average(pC.real)
     # embed()
+
     if PLOT:
         p.plot(kpl, n.average(pC.real, axis=1), 'b.-')
         p.plot(kpl, n.average(pI.real, axis=1), 'k.-')
@@ -847,3 +869,4 @@ for boot in xrange(opts.nboot):
             pk_vs_t=n.real(pC), pCv=n.real(pCv), err_vs_t=1./cnt,
             temp_noise_var=var, nocov_vs_t=n.real(pI),
             freq=fq, pIv=n.real(pIv), cmd=' '.join(sys.argv))
+

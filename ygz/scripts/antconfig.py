@@ -1,40 +1,52 @@
 #plots configuration of antenna array
 import aipy as a, numpy as n, pylab as p, ephem as e
-
-aa = a.cal.get_aa('psa6240_v003',n.array([.15]))
+from mpl_toolkits.mplot3d import Axes3D
+from pylab import *
+import matplotlib.ticker as tic
+import seaborn as sns
+#plt.style.use('seaborn-deep')
+sns.set(style='ticks', font_scale=2.5,font='DejaVu Serif')
+plt.rc('axes', linewidth=2.5)
+aa = a.cal.get_aa('psa6622_v003',n.array([.15]))
 #aa=a.cal.get_aa('paper128',n.array([.15]))
-nants = 64
+nants = 128
 rad2deg = 180/n.pi
-ltsec = 299792458.  #meters
-U,V,I,J,X,Y = [],[],[],[],[],[]
+# ltsec = 299792458.  #meters
+# X,Y,Z,I = [],[],[],[]
+# for i in range(nants):
+#     #print i
+#     a = aa.ants[i]
+#     pos = a.pos*ltsec*1.E-9       #X,Y,Z position in meters
+#     X.append(pos[0]); Y.append(pos[1]); Z.append(pos[2]); I.append(i)
+antpos = [aa.get_baseline(0,i,src='z') for i in range(len(aa.ants))]
+antpos = n.array(antpos) * a.const.len_ns / 100.
+X,Y,Z = antpos[:,0], antpos[:,1], antpos[:,2]
+X -= n.average(X)
+Y -= n.average(Y)
+I = n.arange(nants)
 
-aa.set_jultime(2456240.365)
-src = a.fit.RadioFixedBody(aa.long, aa.lat, janskies=0., mfreq=.15, name='test')
-src.compute(aa)
-for i in range(nants):
-    #print i
-    u,v,w = aa.gen_uvw(i,0,src=src)
-    u,v = u.flatten(), v.flatten()
-    U.append(u)
-    V.append(v)
-    I.append(i)
-
-#pos0 = aa.ants[0].pos
-#i = 0
-#for ant in aa.ants:
-#    Y.append(ant.pos[0]-pos0[0])
-#    X.append(ant.pos[1]-pos0[1])
-#    if i<112: J.append(aa.ant_layout.flatten()[i])
-#    i = i+1
 fig = p.figure()
-ax = fig.add_subplot(111)
-p.plot(U,V,'.',ms=5)
-for u,v,i in zip(U, V,I):
-    #print u,v,i# <--
-    ax.annotate('%s' %i, xy=(u,v), textcoords='data') # <--
-p.grid()
-#p.xlim(-200,200)
-#p.ylim(-200,200)
-p.xlabel('u',size=14)
-p.ylabel('v',size=14)
+#ax = fig.gca(projection='3d')
+ax = fig.add_subplot(211)
+p.scatter(X,Y, c='black')
+ax.set_aspect(1)
+setp( ax.get_xticklabels(), visible=False)
+setp( ax.get_yticklabels(), visible=False)
+ax.get_yaxis().set_tick_params(direction='in')
+ax.get_xaxis().set_tick_params(direction='in')
+ax.grid()
+ax = fig.add_subplot(212)
+g = 112
+Xg, Yg, Ig = X[:g], Y[:g], I[:g]
+p.scatter(Xg,Yg, c='black')
+for x,y,i in zip(Xg, Yg,Ig):
+    ax.annotate('%s' %i, xy=(x,y), textcoords='data', fontsize=12) # <--
+ax.set_xlabel('East Position [m]')
+ax.set_ylabel('North Position [m]')
+ax.get_yaxis().set_tick_params(direction='in')
+ax.get_xaxis().set_tick_params(direction='in')
+ax.set_aspect(5.1)
+#ax.grid()
+
+#p.tight_layout()
 p.show()

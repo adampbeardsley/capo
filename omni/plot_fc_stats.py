@@ -23,6 +23,7 @@ if len(opts.suffix)>0:
     fcaldirs = _fcaldirs
 
 #I wish you could dynamically name variables
+# ARP: you can: eval
 
 dxx1 = np.loadtxt(JD+'/%s/stats_1.txt'%fcaldirs[0])
 dxx2 = np.loadtxt(JD+'/%s/stats_2.txt'%fcaldirs[1])
@@ -50,9 +51,9 @@ plt.xlim(-1,114)
 plt.xlabel('Antenna #')
 plt.ylabel('Delay')
 plt.legend(loc='best')
-plt.savefig(JD+'/stats_xx.png')
-#plt.show()
-plt.close()
+#plt.savefig(JD+'/stats_xx.png')
+plt.show()
+#plt.close()
 
 plt.errorbar(n1y,m1y,yerr=s1y,fmt='ro',ecolor='r',label='fc_yy_1')
 plt.errorbar(n2y,m2y,yerr=s2y,fmt='mo',ecolor='m',label='fc_yy_2')
@@ -63,9 +64,20 @@ plt.xlim(-1,114)
 plt.xlabel('Antenna #')
 plt.ylabel('Delay')
 plt.legend(loc='best')
-plt.savefig(JD+'/stats_yy.png')
-#plt.show()
-plt.close()
+#plt.savefig(JD+'/stats_yy.png')
+plt.show()
+#plt.close()
+
+#npz_xx_1 = sorted(glob.glob(JD+'/fcal_xx_1/*npz'))
+#npz_xx_2 = sorted(glob.glob(JD+'/fcal_xx_2/*npz'))
+#npz_yy_1 = sorted(glob.glob(JD+'/fcal_yy_1/*npz'))
+#npz_yy_2 = sorted(glob.glob(JD+'/fcal_yy_2/*npz'))
+
+npz_xx_1 = sorted(glob.glob(JD+'/*npz'))
+npz_xx_2 = sorted(glob.glob(JD+'/*npz'))
+npz_yy_1 = sorted(glob.glob(JD+'/*npz'))
+npz_yy_2 = sorted(glob.glob(JD+'/*npz'))
+
 
 npz_xx_1 = sorted(glob.glob(JD+'/%s/*npz'%fcaldirs[0]))
 npz_xx_2 = sorted(glob.glob(JD+'/%s/*npz'%fcaldirs[1]))
@@ -89,7 +101,10 @@ for i in range(NN):
     npz = np.load(npzlists[i][0])
     DD = Dlists[i]
     for k in npz.keys():
-        if k.isdigit():
+#        if k.isdigit():
+        if k.startswith('d'):
+            k=k[1:]
+#            print 'loaded ',k
             DD[k] = []
     del(npz)
     npzs = npzlists[i]
@@ -97,8 +112,11 @@ for i in range(NN):
         print '    Reading %s'%npzfile
         dn = np.load(npzfile)
         for k in dn.keys():
-            if k.isdigit():
-                try: DD[k].append(dn[k+'d'][0])
+#            if k.isdigit():
+            if k.startswith('d'):
+                k=k[1:]
+#                print 'bfnadsfknadslkfn ',k
+                try: DD[k].append(dn['d'+k])
                 except KeyError:
                     print 'KeyError for %s'%str(k)
                     continue
