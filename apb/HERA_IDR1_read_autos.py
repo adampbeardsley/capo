@@ -1,5 +1,4 @@
 import numpy as np
-from uvdata.uv import UVData
 import capo
 import aipy
 from glob import glob
@@ -24,8 +23,8 @@ xxd_ave = np.zeros((nant, xnt, nchan / chanave), dtype=np.float64)
 yyd_ave = np.zeros((nant, ynt, nchan / chanave), dtype=np.float64)
 for ant in xrange(128):
     for chan in xrange(nchan / chanave):
-        xxd_ave[ant, :, chan] = np.mean(xxd[ant, ant]['xx'][:, (chan * chanave):((chan + 1) * chanave)], axis=1)
-        yyd_ave[ant, :, chan] = np.mean(yyd[ant, ant]['yy'][:, (chan * chanave):((chan + 1) * chanave)], axis=1)
+        xxd_ave[ant, :, chan] = np.real(np.mean(xxd[ant, ant]['xx'][:, (chan * chanave):((chan + 1) * chanave)], axis=1))
+        yyd_ave[ant, :, chan] = np.real(np.mean(yyd[ant, ant]['yy'][:, (chan * chanave):((chan + 1) * chanave)], axis=1))
 
 inds = np.argsort(xlsts)
 xlsts = xlsts[inds]
@@ -37,3 +36,6 @@ yyd_ave = yyd_ave[:, inds, :]
 
 lsts = [xlsts, ylsts]
 data_ave = [xxd_ave, yyd_ave]
+
+autos_file = '/data4/beards/HERA_IDR1_analysis/IDR1_autos.npz'
+np.savez(autos_file, data_ave=data_ave, lsts=lsts)
