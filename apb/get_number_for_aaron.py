@@ -14,6 +14,7 @@ from scipy.optimize import curve_fit
 from scipy import interpolate
 import matplotlib.pyplot as plt
 import aipy
+from astropy.io import fits
 
 
 def curve_to_fit(lsts, gain, offset):
@@ -84,13 +85,13 @@ rxr_temp = auto_fits[:, :, :, 1] / gains - Tsky_mean[:, None, :]
 # rxr_temp is in K already. Need to convert gains to give Jy
 # Jy = 2761.3006 * (T/K) * (m^2/Ae)
 beam_file = '/data4/beards/instr_data/HERA_HFSS_X4Y2H_4900.hmap'
-beam = fits.getdata(hera_beam_file, extname='BEAM_{0}'.format('X'))
-beam_f = fits.getdata(hera_beam_file, extname='FREQS_{0}'.format('X'))
+beam = fits.getdata(beam_file, extname='BEAM_{0}'.format('X'))
+beam_f = fits.getdata(beam_file, extname='FREQS_{0}'.format('X'))
 func = interpolate.interp1d(beam_f, beam, kind='cubic', axis=1)
 npix = beam.shape[0]
 Ae = (aipy.const.c / (100.0 * freqs * 1.0e6))**2.0 / (4 * np.pi / npix * np.sum(func(freqs), axis=0))
 K_to_Jy = 2761.3006 / Ae
-gains_Jy = np.sqrt(gains * K_to_Jy.reshape(1, 1, -1))
+gains_Jy = np.sqrt(gains / K_to_Jy.reshape(1, 1, -1))
 
 if save_plots:
     # first plot the actual fits
