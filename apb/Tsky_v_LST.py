@@ -11,7 +11,8 @@ import healpy as hp
 
 calc_paper = False
 
-hera_beam_file = '/data4/beards/instr_data/HERA_HFSS_X4Y2H_4900.hmap'
+# hera_beam_file = '/data4/beards/instr_data/HERA_HFSS_X4Y2H_4900.hmap'
+hera_beam_file = '/data4/beards/instr_data/HERA_beam_nic.hmap'
 
 df = 1.5625  # 100 MHz / 64 averaged channels
 freqs = np.arange(100.0 + df / 2.0, 200.0, df)
@@ -85,7 +86,7 @@ inds = np.argsort(lsts)
 lsts = lsts[inds]
 HERA_Tsky = HERA_Tsky[:, :, inds]
 
-Tsky_file = '/data4/beards/HERA_IDR1_analysis/HERA_Tsky.npz'
+Tsky_file = '/data4/beards/HERA_IDR1_analysis/HERA_Tsky_nic.npz'
 np.savez(Tsky_file, HERA_Tsky=HERA_Tsky, freqs=freqs, lsts=lsts)
 if calc_paper:
     PAPER_Tsky = PAPER_Tsky[:, :, inds]

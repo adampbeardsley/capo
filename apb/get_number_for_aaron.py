@@ -45,11 +45,10 @@ npol = len(pols)
 save_plots = True
 
 # Load sky model from previous script:
-# I ran the Tsky calc twice - once with the beam as is in the file, once by squaring
-# the beam. I'm fairly certain now (by looking at PRISim code) that the file I
-# have is already in power units, so the first version should be used.
-Tsky_file = '/data4/beards/HERA_IDR1_analysis/HERA_Tsky.npz'
-# Tsky_file = '/data4/beards/HERA_IDR1_analysis/HERA_Tsky_updated.npz'
+# I ran the Tsky calc twice - once with Dave DeBoer's beam, and once with Nicolas
+# Fagnoni's.
+# Tsky_file = '/data4/beards/HERA_IDR1_analysis/HERA_Tsky.npz'
+Tsky_file = '/data4/beards/HERA_IDR1_analysis/HERA_Tsky_nic.npz'
 data = np.load(Tsky_file)
 freqs = data['freqs']  # These are already made to fit the data
 model_lsts = data['lsts']
@@ -84,7 +83,8 @@ rxr_temp = auto_fits[:, :, :, 1] / gains - Tsky_mean[:, None, :]
 
 # rxr_temp is in K already. Need to convert gains to give Jy
 # Jy = 2761.3006 * (T/K) * (m^2/Ae)
-beam_file = '/data4/beards/instr_data/HERA_HFSS_X4Y2H_4900.hmap'
+# beam_file = '/data4/beards/instr_data/HERA_HFSS_X4Y2H_4900.hmap'
+beam_file = '/data4/beards/instr_data/HERA_beam_nic.hmap'
 beam = fits.getdata(beam_file, extname='BEAM_{0}'.format('X'))
 beam_f = fits.getdata(beam_file, extname='FREQS_{0}'.format('X'))
 func = interpolate.interp1d(beam_f, beam, kind='cubic', axis=1)
@@ -95,7 +95,8 @@ gains_Jy = np.sqrt(gains / K_to_Jy.reshape(1, 1, -1))
 
 if save_plots:
     # first plot the actual fits
-    outdir = '/data4/beards/HERA_IDR1_analysis/plots_new/'
+    outdir = '/data4/beards/HERA_IDR1_analysis/plots_nic_beam/'
+    # outdir = '/data4/beards/HERA_IDR1_analysis/plots_new/'
     finds = [10, 32, 54]  # beginning, middle, end, but not at the very edges
     dark_colors = ['blue', 'green', 'red']
     light_colors = ['dodgerblue', 'lightgreen', 'salmon']
