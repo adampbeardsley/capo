@@ -55,7 +55,7 @@ else: badants=None
 vis_stor = np.zeros((nants,nchan,ntimes),dtype='complex128')
 flg_stor = np.zeros_like(vis_stor)
 
-if include_ants is None:
+if opts.include_ants is None:
     include_ants = range(nants)
 else:
     include_ants = map(int, opts.include_ants.split(','))
