@@ -11,6 +11,7 @@ o.add_option('-c', '--chan', dest='chan', default=None,\
 o.add_option('-t', '--time', dest='time', default=None,\
                      help='Time range in form "lo_hi" (index) to average over.')
 o.add_option('--ba', dest='badants', default='', help='comma separated list of bad antennae.')
+o.add_option('--ia', dest='include_ants', default=None, help='comma separated list of antennas to include.')
 o.add_option('--outpath',default=None,help='Full path of file to print list of bad antennae [1 sigma deviants] to.')
 o.add_option('--autos',dest='autos',default=False,action='store_true',\
              help ='Plot autocorrelations instead of crosses.')
@@ -36,7 +37,7 @@ JD = int(file2jd(args[0]))
 nants,nchan = uv['nants'],uv['nchan']
 uv.select('antennae',0,1,include=True) #XXX assumes ants 0 and 1 are in uv file
 _T=[]
-for p,d in uv.all(): 
+for p,d in uv.all():
     _,_t,_ = p
     _T.append(_t)
 ntimes = len(_T)
@@ -54,34 +55,39 @@ else: badants=None
 vis_stor = np.zeros((nants,nchan,ntimes),dtype='complex128')
 flg_stor = np.zeros_like(vis_stor)
 
+if include_ants is None:
+    include_ants = range(nants)
+else:
+    include_ants = map(int, opts.include_ants.split(','))
+
 #file read
 for uv in args:
     print '    Reading %s...'%uv
-    if not opts.autos: times,data,flags = capo.arp.get_dict_of_uv_data([uv],'cross',opts.pol) 
+    if not opts.autos: times,data,flags = capo.arp.get_dict_of_uv_data([uv],'cross',opts.pol)
     else: times,data,flags = capo.arp.get_dict_of_uv_data([uv],'all',opts.pol)
-    for i in range(nants):
-        for j in range(nants):
+    for i in include_ants:
+        for j in include_ants:
             if not opts.autos:
                 if i==j: continue #neglect autos
             else:
                 if i!=j: continue #neglect crosses
             try:
-                if i<j: 
+                if i<j:
                     vis_stor[i,:,:]+=np.absolute(data[(i,j)][opts.pol].T)
                     flg_stor[i,:,:] += np.ones((nchan,ntimes),dtype='complex128')
                 else:
                     vis_stor[i,:,:]+=np.absolute(data[(j,i)][opts.pol].T)
                     flg_stor[i,:,:] += np.ones((nchan,ntimes),dtype='complex128')
             except KeyError:
-                if i not in badants and j not in badants: 
+                if i not in badants and j not in badants:
                     print 'KeyError on (%i,%i)'%(i,j) #this should not happen
                 continue
-                
+
 #average all abs visibilities |Vij| over j per i
 mean_stor = np.absolute(vis_stor)/np.absolute(flg_stor)
 
 _x,_y,_avg = [],[],[]
-for i in range(nants):
+for i in include_ants:
     x,y = antpos[i]['top_x'],antpos[i]['top_y']
     avg = np.nanmean(mean_stor[i,clo:chi,tlo:thi])
     _x.append(x)
@@ -95,7 +101,7 @@ if opts.pos:
     #Plot channel/time average on antenna positions
     print 'Plotting antpos'
 
-    plt.scatter(_x[:ga[-1]],_y[:ga[-1]],s=40,c=np.log10(np.array(_avg[:ga[-1]]))) 
+    plt.scatter(_x[:ga[-1]],_y[:ga[-1]],s=40,c=np.log10(np.array(_avg[:ga[-1]])))
     cbar = plt.colorbar()
     cbar.ax.set_ylabel(r'$\left\langle |V_{ij}| \right\rangle_{j,t,\nu}$')
 
@@ -138,13 +144,13 @@ if not opts.outpath is None:
             else: outfile.write('%s    %s\n'%(args[0],str(out)[1:-1]))
 else:
     print out
-    
+
 if opts.pmvij:
-    for i in ga:
+    for i in include_ants:
         plt.plot(i,_avg[i],'bo',ms=8)
         if not badants is None:
             if i in badants:
-                plt.plot(i,_avg[i],'kx',ms=10)            
+                plt.plot(i,_avg[i],'kx',ms=10)
     plt.axhline(mean_avg,color='k')
     plt.fill_between(ga,mean_avg-std_avg,mean_avg+std_avg,color='b',alpha=0.5)
     plt.fill_between(ga,mean_avg-2*std_avg,mean_avg+2*std_avg,color='b',alpha=0.2)
@@ -154,4 +160,3 @@ if opts.pmvij:
     plt.xlabel('Antenna number')
     #plt.ylim(0,0.045)
     plt.show()
-    
